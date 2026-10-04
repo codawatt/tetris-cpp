@@ -297,6 +297,21 @@ int main() {
           screenColor[screenIndex] =
               TETROMINO_COLORS[cell - 1];
       }
+   // Draw ghost piece
+   int nGhostY = nCurrentY;
+   while (DoesPieceFit(nCurrentPiece, nCurrentRotation,nCurrentX, nGhostY + 1))
+     nGhostY++;
+
+   for (int px = 0; px < 4; px++)
+     for (int py = 0; py < 4; py++)
+       if (tetromino[nCurrentPiece][Rotate(px, py, nCurrentRotation)] != L'.') {
+         int screenIndex =
+             (nGhostY + py + 2) * nScreenWidth +
+             (nCurrentX + px + 2);
+
+         screen[screenIndex] = nCurrentPiece + 65;
+         screenColor[screenIndex] = 240; // dim gray
+       }
 
     // Draw Current Piece
     for (int px = 0; px < 4; px++)
@@ -318,7 +333,7 @@ int main() {
     const int holdX = nFieldWidth + 6;
     const int holdY = 5;
     std::swprintf(&screen[4 * nScreenWidth + holdX], 8, L"HOLD:");
-    
+
     // Clear previous HOLD preview
     for (int px = 0; px < 4; px++)
       for (int py = 0; py < 4; py++) {
