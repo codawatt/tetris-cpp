@@ -10,6 +10,7 @@
 #include <unordered_map> // dictionary
 #include <chrono>
 #include <vector>
+#include <utility> // NOTE do we actually need it?
 
 #include "linux_console.hpp"
 #include <cstdlib>
@@ -132,6 +133,9 @@ int main() {
   bool bForceDown = false;
   bool bRotateHold = true;
   bool bHardDropHold = true;
+  bool bHoldKey = true;
+  bool bHoldUsed = false;
+  int nHeldPiece = -1;
   int nPieceCount = 0;
   int nScore = 0;
   std::vector<int> vLines;
@@ -164,6 +168,33 @@ int main() {
     } else {
       bHardDropHold = true;
     }
+    // Hold / swap piece - once per current tetromino
+    if (console.down('c')) {
+      if (bHoldKey && !bHoldUsed) {
+        if (nHeldPiece == -1) {
+          nHeldPiece = nCurrentPiece;
+          nCurrentPiece = std::rand() % 7;
+          // This is a new piece, so allow one swap with the piece
+          // we just placed into HOLD.
+          bHoldUsed = false;
+        } else {
+          std::swap(nCurrentPiece, nHeldPiece);
+          bHoldUsed = true;
+        }
+
+        nCurrentX = nFieldWidth / 2;
+        nCurrentY = 0;
+        nCurrentRotation = 0;
+
+        if (!DoesPieceFit(nCurrentPiece, nCurrentRotation,
+                          nCurrentX, nCurrentY))
+          bGameOver = true;
+      }
+      bHoldKey = false;
+    } else {
+      bHoldKey = true;
+    }
+
     // Game Logic ===================
 
     // Handle player movement
@@ -237,6 +268,7 @@ int main() {
         nCurrentY = 0;
         nCurrentRotation = 0;
         nCurrentPiece = std::rand() % 7;
+        bHoldUsed = false;
 
         // If piece does not fit straight away, game over!
         bGameOver = !DoesPieceFit(nCurrentPiece, nCurrentRotation, nCurrentX,
@@ -282,7 +314,30 @@ int main() {
     // Draw Score
     std::swprintf(&screen[2 * nScreenWidth + nFieldWidth + 6], 16, L"SCORE: %8d",
              nScore);
+    // Draw held piece
+    const int holdX = nFieldWidth + 6;
+    const int holdY = 5;
+    std::swprintf(&screen[4 * nScreenWidth + holdX], 8, L"HOLD:");
+    
+    // Clear previous HOLD preview
+    for (int px = 0; px < 4; px++)
+      for (int py = 0; py < 4; py++) {
+        int screenIndex =
+            (holdY + py) * nScreenWidth + (holdX + px);
+        screen[screenIndex] = L' ';
+        screenColor[screenIndex] = 0;
+      }
 
+    if (nHeldPiece != -1) {
+      for (int px = 0; px < 4; px++)
+        for (int py = 0; py < 4; py++)
+          if (tetromino[nHeldPiece][Rotate(px, py, 0)] != L'.') {
+            int screenIndex =
+                (holdY + py) * nScreenWidth + (holdX + px);
+            screen[screenIndex] = nHeldPiece + 65;
+            screenColor[screenIndex] = TETROMINO_COLORS[nHeldPiece];
+          }
+    }
     // Animate Line Completion
     if (!vLines.empty()) {
       // Display Frame (cheekily to draw lines)
