@@ -131,6 +131,7 @@ int main() {
   int nSpeedCount = 0;
   bool bForceDown = false;
   bool bRotateHold = true;
+  bool bHardDropHold = true;
   int nPieceCount = 0;
   int nScore = 0;
   std::vector<int> vLines;
@@ -152,6 +153,17 @@ int main() {
     bKey[2] = console.down(linux_console::Key::Down);
     bKey[3] = console.down('z');
 
+    // Hard drop
+    if (console.down(' ')) {
+      if (bHardDropHold) {
+        while(DoesPieceFit(nCurrentPiece, nCurrentRotation, nCurrentX, nCurrentY +1))
+          nCurrentY++;
+        bForceDown = true;
+      }
+      bHardDropHold = false;
+    } else {
+      bHardDropHold = true;
+    }
     // Game Logic ===================
 
     // Handle player movement
